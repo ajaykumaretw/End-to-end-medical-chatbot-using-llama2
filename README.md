@@ -5,5 +5,7 @@
 # create virtual environment
   python -m venv mchatbot
 # activate virual envornment
-   mchatbot/Scripts/activate
-
+  mchatbot/Scripts/activate
+# install requirements.txt
+  pip install -r requirements.txt
+  
