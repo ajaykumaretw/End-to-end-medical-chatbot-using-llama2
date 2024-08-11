@@ -37,3 +37,13 @@ def flatten_metadata(metadata):
 def batch_vectors(vectors, batch_size):
     for i in range(0, len(vectors), batch_size):
         yield vectors[i:i + batch_size]
+        
+# Function to check if the index exists
+def index_exists(client, index_name):
+    try:
+        # Try to describe the index; if it exists, this will return index info
+        client.describe_index(index_name)
+        return True
+    except Exception as e:
+        # If the index doesn't exist, describe_index will raise an error
+        return False

@@ -1,4 +1,4 @@
-from src.helper import load_pdf,text_split,download_hugging_face_embeddings,flatten_metadata,batch_vectors
+from src.helper import load_pdf,text_split,download_hugging_face_embeddings,flatten_metadata,batch_vectors,index_exists
 from langchain.vectorstores import Pinecone
 from pinecone import Pinecone, ServerlessSpec
 import pinecone
@@ -14,7 +14,12 @@ load_dotenv()
 
 # Retrieve the Pinecone API key from the environment variables
 api_key = os.getenv("PINECONE_API_KEY")
+
 index_name = "medical-chatbot"
+namespace="ns_medical_chatbot"
+dimension = 384  # Dimension of the vectors you're working with
+metric = "cosine"  # Similarity metric
+
 extracted_data = load_pdf("data/")
 text_chunks = text_split(extracted_data)
 print("length of my chunk:", len(text_chunks))
@@ -31,22 +36,29 @@ if api_key:
 else:
     print("Error: API key not found.")
     
-# Creates an index using the API key stored in the client 'pc'.
-pc.create_index(
-    name=index_name,
-    dimension=384,
-    metric="cosine",
-    spec=ServerlessSpec(
-        cloud='aws', 
-        region='us-east-1'
-    ) 
-)
+# Check if the index already exists
+if index_exists(pc, index_name):
+    print(f"Index '{index_name}' already exists.")
+else:
+    # Create the index using the API key stored in the client 'pc'
+    pc.create_index(
+        name=index_name,
+        dimension=dimension,
+        metric=metric,
+        spec=ServerlessSpec(
+            cloud='aws', 
+            region='us-east-1'
+        )
+    )
+    print(f"Index '{index_name}' created successfully.")
 
+# Access the index
 index = pc.Index(index_name)
 
-# Retrieve index info to get the host
+# Retrieve and print index information to get details such as the host
 index_info = pc.describe_index(index_name)
 print(index_info)
+
 
 # Define batch size (adjust as needed)
 batch_size = 1000  # Set a batch size that fits within Pinecone's limits
@@ -56,7 +68,7 @@ vectors = [(str(uuid.uuid4()), list(embedding), {
     "text": chunk.page_content,
     **flatten_metadata(chunk.metadata),
 }) for embedding, chunk in zip(embeddings, text_chunks)]
-namespace="ns_medical_chatbot"
+
 # Upsert vectors in batches
 for batch in batch_vectors(vectors, batch_size):
     index.upsert(vectors=batch,namespace=namespace)
