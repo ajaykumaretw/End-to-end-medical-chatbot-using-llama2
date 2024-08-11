@@ -1,6 +1,6 @@
 from src.helper import load_pdf,text_split,download_hugging_face_embeddings,flatten_metadata,batch_vectors
 from langchain.vectorstores import Pinecone
-from pinecone import ServerlessSpec
+from pinecone import Pinecone, ServerlessSpec
 import pinecone
 from dotenv import load_dotenv
 import os
@@ -8,14 +8,13 @@ import uuid
 import math
 import json
 
+# Load environment variables from a .env file
 load_dotenv()
 
-#PINECONE_API_KEY=os.getenv('PINECONE_API_KEY')
-PINECONE_API_ENV='gcp-starter'
-# Initialize Pinecone
-api_key = os.getenv("PINECONE_API_KEY")
-print(api_key)
 
+# Retrieve the Pinecone API key from the environment variables
+api_key = os.getenv("PINECONE_API_KEY")
+index_name = "medical-chatbot"
 extracted_data = load_pdf("data/")
 text_chunks = text_split(extracted_data)
 print("length of my chunk:", len(text_chunks))
@@ -25,11 +24,13 @@ embedding_model = download_hugging_face_embeddings()
 # Generate embeddings for each text chunk
 embeddings = [embedding_model.embed_query(t.page_content) for t in text_chunks]
 
-
-pc = Pinecone(api_key=api_key)
-
-# Define index name
-index_name = "medical-chatbot"
+# Initialize Pinecone with the API key
+if api_key:
+    pc = Pinecone()
+    print(f"Pinecone Initialized: {pc}")
+else:
+    print("Error: API key not found.")
+    
 # Creates an index using the API key stored in the client 'pc'.
 pc.create_index(
     name=index_name,
